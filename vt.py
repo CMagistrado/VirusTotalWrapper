@@ -62,15 +62,13 @@ class VirusTotal:
             2. Creates output file
             3. Gives url to
         '''
-        analysis = open(self.analysis_file, 'a')
-        ifile = open(input_filename, 'r')
-        domainList = ifile.read().split()
+        with open(input_filename, 'r') as ifile:
+            domainList = ifile.read().split()
 
-        for i in range(0, len(domainList)):
-            result = self.request(domainList[i])
-            self.analysis.write(str(result))
-        ifile.close()
-        analysis.close()
+        with open(self.analysis_file, 'a') as analysis:
+            for i in range(0, len(domainList)):
+                result = self.request(domainList[i])
+                analysis.write(str(result))
         return
 
     def inspect_to_csv(self, input_filename):
