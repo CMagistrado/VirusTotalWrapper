@@ -55,6 +55,21 @@ class VirusTotal:
             d = f.read.splitlines()
         return d
 
+    @staticmethod
+    def _domains_from_file(i):
+        """Extract list of domains from input file
+
+        Args:
+            ifile (file): file with list of domains to assess
+
+        Returns:
+            list: list of domains extracted from file
+        """
+
+        with open(ifile, 'r') as f:
+            d = f.read.split()
+        return d
+
     def inspect(self, input_filename):
         '''
             Driver.
@@ -62,8 +77,7 @@ class VirusTotal:
             2. Creates output file
             3. Gives url to
         '''
-        with open(input_filename, 'r') as ifile:
-            domainList = ifile.read().split()
+        domainList = self._domains_from_file(input_file)
 
         with open(self.analysis_file, 'a') as analysis:
             for i in range(0, len(domainList)):
