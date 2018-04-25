@@ -85,7 +85,7 @@ class VirusTotal:
                 analysis.write(str(result))
         return
 
-    def inspect_to_csv(self, input_filename):
+    def inspect_to_csv(self, input_filename):  # Consider using Pandas for this
         '''
             Driver.
             1. Reads domain list from file
@@ -198,7 +198,7 @@ class VirusTotal:
 
         return
 
-    def csv_output(self, result):
+    def csv_output(self, result):  # Again, either use Pandas or python's CSV
         analysis = open(self.analysis_file, 'a')
         domain = result['url']
         row = domain + ","
