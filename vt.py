@@ -21,28 +21,46 @@
 import Mallector, requests, logging
 import time, DailySave, queue, os
 
+logger = loging.getLogger(__name__)
+
 class VirusTotal:
 
-    def __init__(self):
-        self.api = "06152a7ad29de8672ae94b27e7079f2911b0c64f9c63f4cb516113c9919420a1"
-        self.av_list = open('data/VT-AVs', 'r').read().splitlines()
-        self.potentials = None
-        self.potentials_file = 'data/Potentials.txt'
-        self.blk = None
-        self.blk_file = 'data/GlobalBlacklist.txt'
+    def __init__(self,
+                 api_key,
+                 av_list,
+                 potentials=None,
+                 potentials_file='data/Potentials.txt',
+                 blk=None,
+                 blk_file='data/GlobalBlacklist.txt',
+                 analysis=None,
+                 analysis_file='data/Full-Analysis.txt',
+                 processed=None,
+                 processed_file = 'data/Processed-file.txt',
+                 logfile=None):
+        self.api = api_key
+        self.av_list = self._get_avs('data/VT-AVs')
+        self.potentials = potentials
+        self.potentials_file = potentials_file
+        self.blk = blk
+        self.blk_file = blk_file
         self.analysis = None
-        self.analysis_file = 'data/Full-Analysis.txt'
-        self.processed = None
-        self.processed_file = 'data/Processed_file.txt'
-        logging.basicConfig(filename='logs/vt.log', level=logging.DEBUG, format='%(asctime)s %(message)s')
+        self.analysis_file = analysis_file
+        self.processed = processed
+        self.processed_file = processed_file
         return
-    
+
+    @staticmethod
+    def _get_avs(av_list):
+        with open(av_list, 'r') as f:
+            d = f.read.splitlines()
+        return d
+
     def inspect(self, input_filename):
         '''
             Driver.
             1. Reads domain list from file
             2. Creates output file
-            3. Gives url to 
+            3. Gives url to
         '''
         analysis = open(self.analysis_file, 'a')
         ifile = open(input_filename, 'r')
@@ -61,7 +79,7 @@ class VirusTotal:
             1. Reads domain list from file
             2. Creates output file
             3. Formats output file
-            4. Gives url to 
+            4. Gives url to
         '''
         # Input file for domain_list
         ifile = open(input_filename, 'r')
@@ -72,21 +90,21 @@ class VirusTotal:
 
         for i in range(0, len(domainList)):
             print("{}/{}".format(i, len(domainList)))
-            
+
             try:
                 result = self.request(domainList[i])
                 domain = result['url']
                 row = domain + ","
                 row += ",,,,," # This is the number of columns until the spreadsheet records AVs.
                 scanResults = result['scans']
-                
+
                 for i in range(0, len(self.av_list)):
                     try:
                         row += self.cell(scanResults[self.av_list[i]])
                     except:
                         pass
                     row += ","
-                
+
                 row += "\n"
                 analysis.write(row)
 
@@ -105,7 +123,7 @@ class VirusTotal:
             1. Reads domain list from file
             2. Creates output file
             3. Formats output file
-            4. Gives url to 
+            4. Gives url to
         '''
         # Blacklist output file. New file each day.
         # Removing blacklist file per day. Going to make it one master blacklist.
@@ -119,7 +137,7 @@ class VirusTotal:
             # We open that file
             collector.update_feeds()
             collector.collect(self.potentials_file)
-        
+
             new_potentials = self.new_pdomains()
             if (new_potentials):
 
@@ -133,7 +151,7 @@ class VirusTotal:
 
                 for i in range(0, len(domainList)):
                     print("{}/{}".format(i, len(domainList)))
-                    
+
                     try:
                         result = self.request(domainList[i])
 
@@ -155,7 +173,7 @@ class VirusTotal:
                         print("Check persistent analysis..")
                         logging.debug("Check persistent analysis.\n")
                         pass
-                
+
                 analysis.close()
                 self.blk.close()
                 potentials.close()
@@ -166,7 +184,7 @@ class VirusTotal:
                 time.sleep(60)
                 #self.update() # This checks processed file again.
 
-        return    
+        return
 
     def csv_output(self, result):
         analysis = open(self.analysis_file, 'a')
@@ -174,14 +192,14 @@ class VirusTotal:
         row = domain + ","
         row += ",,,,," # This is the number of columns until the spreadsheet records AVs.
         scanResults = result['scans']
-        
+
         for i in range(0, len(self.av_list)):
             try:
                 row += self.cell(scanResults[self.av_list[i]])
             except:
                 pass
             row += ","
-        
+
         row += "\n"
         analysis.write(row)
         analysis.close()
@@ -214,11 +232,11 @@ class VirusTotal:
 
     def add_url(self, url):
         '''
-            Adds a domain/url/ip to vt queue to analyze. 
-        '''  
+            Adds a domain/url/ip to vt queue to analyze.
+        '''
         params = {'apikey': self.api, 'url': url}
         response = requests.post('https://www.virustotal.com/vtapi/v2/url/scan', data=params)
-        
+
         if (response.status_code == 403):
             logging.debug("403: {}".format(url))
             print("403") # DEBUGGING
@@ -231,18 +249,18 @@ class VirusTotal:
             print("Waiting 60s...")
             time.sleep(60)
             response = requests.post('https://www.virustotal.com/vtapi/v2/url/scan', data=params)
-            
+
             if (response.status_code == 403):
                 logging.debug("403: {}".format(url))
                 print("403") # DEBUGGING
                 return
-                
+
             json_response = response.json()
             pass
         return json_response
-    
+
     def new_pdomains(self):
-        
+
         # Input file for domain_list
         try:
             potentials = open(self.potentials_file, 'r')
@@ -252,10 +270,10 @@ class VirusTotal:
             potentials = open(self.potentials_file, 'a')
             potentials.close()
             potentials = open(self.potentials_file, 'r')
-            pass     
+            pass
 
         potentials_list = potentials.read().split()
-        potentials.close()        
+        potentials.close()
 
         try:
             blkout = open(self.blk_file, 'r')
@@ -296,13 +314,13 @@ class VirusTotal:
         headers = {"Accept-Encoding": "gzip, deflate",\
             "User-Agent" : "gzip,  My Python requests library example client or username"}
         response = requests.post('https://www.virustotal.com/vtapi/v2/url/report', params=params, headers=headers)
-        
+
         # There's a case where the response is empty
         if not (response):
             return
         json_response = response.json()
         return json_response
-    
+
     def clean_json(self, jsonKinda):
         '''
             For whatever reason, VirusTotal gives you back a JSON that
@@ -315,7 +333,7 @@ class VirusTotal:
         clean = clean.replace("False", "0")
         clean = clean.replace("True", "1")
         return clean
-    
+
     def csv_format(self, output_file):
         '''
             Creates a formatted csv, ready for data.
@@ -334,7 +352,7 @@ class VirusTotal:
         '''
         cell = str(av_result['detected'])
         cell += ";" + av_result['result']
-        
+
         # Sometimes there aren't details.
         try:
             cell += ";" + av_result['detail']
@@ -342,14 +360,14 @@ class VirusTotal:
             pass
 
         return cell
-    
+
     def append(self, filename):
         '''
             Saves output to a file
         '''
         f = open(filename, 'a')
         return f
-    
+
     def close(self, filename):
         '''
             Closes a file
@@ -367,8 +385,8 @@ class VirusTotal:
             print('mal_check broke, but because of is_malicious()')
             logging.debug('mal_check broke, but because of is_malicious()')
         print("{}: {}".format(conclusion, url))
-        return 
-    
+        return
+
     def is_malicious(self, result):
         '''
             Determines if a domain is malicious.
